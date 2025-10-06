@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { mockWeeklySnapshots, mockDailyKPIs, mockCampaigns, mockCreatives } from '@/lib/mockData';
+import { WeeklyData } from '@/types';
 import { CheckCircle, XCircle, Download, FileText } from 'lucide-react';
 
 export default function WeeklyTab() {
@@ -32,7 +33,7 @@ export default function WeeklyTab() {
     acc[date].ctr = (acc[date].clicks / acc[date].impressions * 100) || 0;
     acc[date].cpm = (acc[date].cost / acc[date].impressions * 1000) || 0;
     return acc;
-  }, {} as any);
+  }, {} as Record<string, WeeklyData>);
 
   const chartData = Object.values(weeklyData);
 

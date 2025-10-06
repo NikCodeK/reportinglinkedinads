@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { mockDailyKPIs, mockCampaigns, mockCreatives } from '@/lib/mockData';
-import { FilterOptions } from '@/types';
+import { FilterOptions, CreativePerformanceStats } from '@/types';
 import { TrendingUp, TrendingDown, Award, AlertTriangle } from 'lucide-react';
 
 export default function DeepDiveTab() {
@@ -45,17 +45,17 @@ export default function DeepDiveTab() {
       acc[kpi.creativeId].count += 1;
       
       return acc;
-    }, {} as any);
+    }, {} as Record<string, CreativePerformanceStats>);
 
     // Calculate averages
-    Object.values(creativeStats).forEach((stats: any) => {
+    Object.values(creativeStats).forEach((stats: CreativePerformanceStats) => {
       stats.ctr = stats.impressions > 0 ? (stats.clicks / stats.impressions * 100) : 0;
       stats.cpc = stats.clicks > 0 ? (stats.cost / stats.clicks) : 0;
       stats.cvr = stats.clicks > 0 ? (stats.leads / stats.clicks * 100) : 0;
       stats.cpl = stats.leads > 0 ? (stats.cost / stats.leads) : 0;
     });
 
-    return Object.values(creativeStats).sort((a: any, b: any) => a.cpl - b.cpl);
+    return Object.values(creativeStats).sort((a: CreativePerformanceStats, b: CreativePerformanceStats) => a.cpl - b.cpl);
   }, [filters]);
 
   const getCreativeInfo = (creativeId: string) => {
@@ -138,7 +138,7 @@ export default function DeepDiveTab() {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {topPerformers.map((creative: any, index) => {
+              {topPerformers.map((creative: CreativePerformanceStats, index) => {
                 const creativeInfo = getCreativeInfo(creative.creativeId);
                 return (
                   <div key={creative.creativeId} className="border border-green-200 rounded-lg p-4 bg-green-50">
@@ -193,7 +193,7 @@ export default function DeepDiveTab() {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              {bottomPerformers.map((creative: any, index) => {
+              {bottomPerformers.map((creative: CreativePerformanceStats, index) => {
                 const creativeInfo = getCreativeInfo(creative.creativeId);
                 return (
                   <div key={creative.creativeId} className="border border-red-200 rounded-lg p-4 bg-red-50">
@@ -281,7 +281,7 @@ export default function DeepDiveTab() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {creativePerformance.map((creative: any, index) => {
+              {creativePerformance.map((creative: CreativePerformanceStats, index) => {
                 const creativeInfo = getCreativeInfo(creative.creativeId);
                 const campaignName = creativeInfo ? getCampaignName(creativeInfo.campaignId) : 'Unknown';
                 

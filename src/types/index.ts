@@ -169,6 +169,19 @@ export interface WeeklyKPI {
   campaigns: number;
 }
 
+export interface WeeklyData {
+  date: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  leads: number;
+  ctr: number;
+  cpc: number;
+  cpm: number;
+  cpl: number;
+  cvr: number;
+}
+
 export interface LogEvent {
   id: string;
   timestamp: string;
@@ -177,6 +190,19 @@ export interface LogEvent {
   campaignId?: string;
   campaignName?: string;
   details?: Record<string, any>;
+}
+
+export interface CreativePerformanceStats {
+  creativeId: string;
+  impressions: number;
+  clicks: number;
+  cost: number;
+  leads: number;
+  ctr: number;
+  cpc: number;
+  cvr: number;
+  cpl: number;
+  count: number;
 }
 
 export interface DeepDiveData {
