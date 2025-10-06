@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { mockEvents, mockCampaigns } from '@/lib/mockData';
-import { Event } from '@/types';
+import { LogEvent } from '@/types';
 import { Plus, Calendar, DollarSign, Target, Image, FileText } from 'lucide-react';
 
 export default function LogbuchTab() {
-  const [events, setEvents] = useState<Event[]>(mockEvents);
+  const [events, setEvents] = useState<LogEvent[]>(mockEvents);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
-    type: 'note' as Event['type'],
+    type: 'note' as LogEvent['type'],
     campaignId: '',
     description: '',
     value: '',
@@ -33,7 +33,7 @@ export default function LogbuchTab() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    const newEvent: Event = {
+    const newEvent: LogEvent = {
       id: `event-${Date.now()}`,
       type: formData.type,
       campaignId: formData.campaignId || undefined,
@@ -59,7 +59,7 @@ export default function LogbuchTab() {
     return mockCampaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
   };
 
-  const formatEventValue = (event: Event) => {
+  const formatEventValue = (event: LogEvent) => {
     if (!event.value) return '';
     
     switch (event.type) {
@@ -72,7 +72,7 @@ export default function LogbuchTab() {
     }
   };
 
-  const getEventColor = (type: Event['type']) => {
+  const getEventColor = (type: LogEvent['type']) => {
     switch (type) {
       case 'budget_change': return 'bg-green-100 text-green-800 border-green-200';
       case 'bid_change': return 'bg-blue-100 text-blue-800 border-blue-200';
@@ -115,7 +115,7 @@ export default function LogbuchTab() {
                     value={formData.type}
                     onChange={(e) => setFormData(prev => ({ 
                       ...prev, 
-                      type: e.target.value as Event['type'],
+                      type: e.target.value as LogEvent['type'],
                       value: e.target.value === 'note' ? '' : prev.value // Clear value for notes
                     }))}
                     className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"

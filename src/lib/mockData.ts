@@ -1,4 +1,4 @@
-import { Campaign, Creative, DailyKPI, WeeklySnapshot, Recommendation, Event } from '@/types';
+import { Campaign, Creative, DailyKPI, WeeklySnapshot, Recommendation, LogEvent } from '@/types';
 
 export const mockCampaigns: Campaign[] = [
   {
@@ -197,7 +197,7 @@ export const mockWeeklySnapshots: WeeklySnapshot[] = [
   }
 ];
 
-export const mockEvents: Event[] = [
+export const mockEvents: LogEvent[] = [
   {
     id: 'event-1',
     type: 'budget_change',
