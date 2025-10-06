@@ -64,6 +64,7 @@ export interface Campaign {
   name: string;
   type: string;
   status: string;
+  objective: string;              // Campaign objective (Lead Generation, Brand Awareness, etc.)
   
   // Budget & Spending
   budget: number;                 // Gesamtbudget
