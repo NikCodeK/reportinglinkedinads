@@ -208,6 +208,23 @@ export interface CreativePerformanceStats {
   count: number;
 }
 
+export interface Recommendation {
+  id: string;
+  type: 'creative' | 'budget' | 'targeting' | 'bidding';
+  action: string;
+  reasoning: string;
+  impact: 'low' | 'medium' | 'high';
+  status: 'pending' | 'approved' | 'rejected' | 'implemented';
+}
+
+export interface WeeklySnapshot {
+  id: string;
+  weekStart: string;
+  weekEnd: string;
+  insights: string[];
+  recommendations: Recommendation[];
+}
+
 export interface DeepDiveData {
   topPerformingCampaigns: Campaign[];
   topPerformingCreatives: Creative[];
