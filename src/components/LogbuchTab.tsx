@@ -20,14 +20,22 @@ export default function LogbuchTab() {
     budget_change: DollarSign,
     bid_change: Target,
     creative_rotation: Image,
-    note: FileText
+    note: FileText,
+    campaign_created: Plus,
+    campaign_paused: Target,
+    budget_updated: DollarSign,
+    bid_adjustment: Target
   };
 
   const eventLabels = {
     budget_change: 'Budget Änderung',
     bid_change: 'Bid Änderung',
     creative_rotation: 'Creative Rotation',
-    note: 'Notiz'
+    note: 'Notiz',
+    campaign_created: 'Kampagne erstellt',
+    campaign_paused: 'Kampagne pausiert',
+    budget_updated: 'Budget aktualisiert',
+    bid_adjustment: 'Bid angepasst'
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -64,8 +72,10 @@ export default function LogbuchTab() {
     
     switch (event.type) {
       case 'budget_change':
-        return event.value > 0 ? `+€${event.value}` : `€${event.value}`;
+      case 'budget_updated':
+        return event.value > 0 ? `+€${event.value.toFixed(2)}` : `€${event.value.toFixed(2)}`;
       case 'bid_change':
+      case 'bid_adjustment':
         return event.value > 0 ? `+€${event.value.toFixed(2)}` : `€${event.value.toFixed(2)}`;
       default:
         return '';
@@ -78,6 +88,10 @@ export default function LogbuchTab() {
       case 'bid_change': return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'creative_rotation': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'note': return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'campaign_created': return 'bg-emerald-100 text-emerald-800 border-emerald-200';
+      case 'campaign_paused': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'budget_updated': return 'bg-green-100 text-green-800 border-green-200';
+      case 'bid_adjustment': return 'bg-blue-100 text-blue-800 border-blue-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -124,6 +138,10 @@ export default function LogbuchTab() {
                     <option value="bid_change">Bid Änderung</option>
                     <option value="creative_rotation">Creative Rotation</option>
                     <option value="note">Notiz</option>
+                    <option value="campaign_created">Kampagne erstellt</option>
+                    <option value="campaign_paused">Kampagne pausiert</option>
+                    <option value="budget_updated">Budget aktualisiert</option>
+                    <option value="bid_adjustment">Bid angepasst</option>
                   </select>
                 </div>
 
