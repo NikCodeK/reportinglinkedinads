@@ -16,7 +16,10 @@ export interface DailyKPI {
   id: string;
   date: string;
   campaignId: string;
-  creativeId: string;
+  campaignName?: string | null;
+  creativeId?: string | null;
+  creativeName?: string | null;
+  updatedAt?: string | null;
 
   // Core Metrics
   impressions: number;
@@ -199,6 +202,9 @@ export interface LogEvent {
 
 export interface CreativePerformanceStats {
   creativeId: string;
+  creativeName?: string | null;
+  campaignId?: string | null;
+  campaignName?: string | null;
   impressions: number;
   clicks: number;
   cost: number;
@@ -210,29 +216,25 @@ export interface CreativePerformanceStats {
   count: number;
 }
 
-export interface Recommendation {
-  id: string;
-  type: 'creative' | 'budget' | 'targeting' | 'bidding';
+export interface WeeklyBriefingRecommendation {
+  id?: string;
   action: string;
   reasoning: string;
   impact: 'low' | 'medium' | 'high';
-  status: 'pending' | 'approved' | 'rejected' | 'implemented';
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
-export interface WeeklySnapshot {
+export interface WeeklyBriefing {
   id: string;
   weekStart: string;
   weekEnd: string;
+  summary: string;
+  highlights: string[];
   insights: string[];
-  recommendations: Recommendation[];
-  published?: boolean;
-  createdAt?: string;
-}
-
-export interface DeepDiveData {
-  topPerformingCampaigns: Campaign[];
-  topPerformingCreatives: Creative[];
-  performanceByDay: DailyKPI[];
-  performanceByWeek: WeeklyKPI[];
-  recentEvents: LogEvent[];
+  kpiComparisons: Record<string, unknown>;
+  recommendations: WeeklyBriefingRecommendation[];
+  status: 'draft' | 'published';
+  publishedAt?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
 }

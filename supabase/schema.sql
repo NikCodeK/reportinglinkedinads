@@ -8,6 +8,8 @@ create table if not exists fact_daily (
   date date not null,
   campaign_id text not null,
   creative_id text,
+  campaign_name text,
+  creative_name text,
   impressions bigint not null default 0,
   clicks bigint not null default 0,
   cost numeric(12,2) not null default 0,
@@ -42,7 +44,16 @@ create table if not exists weekly_briefings (
 
 create table if not exists events (
   id uuid primary key default gen_random_uuid(),
-  type text check (type in ('budget_change', 'bid_change', 'creative_rotation', 'note')) not null,
+  type text check (type in (
+    'budget_change',
+    'bid_change',
+    'creative_rotation',
+    'note',
+    'campaign_created',
+    'campaign_paused',
+    'budget_updated',
+    'bid_adjustment'
+  )) not null,
   campaign_id text,
   description text not null,
   value numeric(12,2),

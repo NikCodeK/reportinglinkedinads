@@ -64,9 +64,12 @@ Bearbeiten Sie `.env.local`:
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_SERVICE_ROLE_KEY=service_role_key_from_supabase
 
-# Basic Auth
+# Auth & Webhooks
 NEXT_PUBLIC_DASHBOARD_PASSWORD=admin123
+N8N_INGEST_TOKEN=shared_secret_for_n8n
 ```
 
 4. **Development Server starten**
@@ -81,71 +84,69 @@ npm run dev
 ### Database Schema
 
 ```sql
--- Campaigns
-CREATE TABLE campaigns (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  status TEXT CHECK (status IN ('active', 'paused', 'completed')) DEFAULT 'active',
-  budget DECIMAL(10,2) NOT NULL,
-  objective TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create extension if not exists "uuid-ossp";
+
+create table if not exists fact_daily (
+  id uuid primary key default gen_random_uuid(),
+  date date not null,
+  campaign_id text not null,
+  creative_id text,
+  campaign_name text,
+  creative_name text,
+  impressions bigint not null default 0,
+  clicks bigint not null default 0,
+  cost numeric(12,2) not null default 0,
+  leads bigint not null default 0,
+  ctr numeric(9,6) not null default 0,
+  cpc numeric(12,4) not null default 0,
+  cpm numeric(12,4) not null default 0,
+  cvr numeric(9,6) not null default 0,
+  cpl numeric(12,4) not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  creative_key text generated always as (coalesce(creative_id, '')) stored,
+  unique (date, campaign_id, creative_key)
 );
 
--- Creatives
-CREATE TABLE creatives (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  type TEXT CHECK (type IN ('image', 'video', 'carousel')) NOT NULL,
-  headline TEXT NOT NULL,
-  description TEXT NOT NULL,
-  cta TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+create table if not exists weekly_briefings (
+  id uuid primary key default gen_random_uuid(),
+  week_start date not null,
+  week_end date not null,
+  summary text not null,
+  highlights jsonb not null default '[]'::jsonb,
+  insights jsonb not null default '[]'::jsonb,
+  kpi_comparisons jsonb not null default '{}'::jsonb,
+  recommendations jsonb not null default '[]'::jsonb,
+  status text not null default 'draft',
+  raw_payload jsonb not null default '{}'::jsonb,
+  published_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (week_start)
 );
 
--- Daily KPIs
-CREATE TABLE fact_daily (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  date DATE NOT NULL,
-  campaign_id UUID REFERENCES campaigns(id) ON DELETE CASCADE,
-  creative_id UUID REFERENCES creatives(id) ON DELETE CASCADE,
-  impressions INTEGER NOT NULL DEFAULT 0,
-  clicks INTEGER NOT NULL DEFAULT 0,
-  cost DECIMAL(10,2) NOT NULL DEFAULT 0,
-  leads INTEGER NOT NULL DEFAULT 0,
-  ctr DECIMAL(5,2) NOT NULL DEFAULT 0,
-  cpc DECIMAL(5,2) NOT NULL DEFAULT 0,
-  cpm DECIMAL(5,2) NOT NULL DEFAULT 0,
-  cvr DECIMAL(5,2) NOT NULL DEFAULT 0,
-  cpl DECIMAL(5,2) NOT NULL DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(date, campaign_id, creative_id)
+create table if not exists events (
+  id uuid primary key default gen_random_uuid(),
+  type text check (type in ('budget_change', 'bid_change', 'creative_rotation', 'note', 'campaign_created', 'campaign_paused', 'budget_updated', 'bid_adjustment')) not null,
+  campaign_id text,
+  description text not null,
+  value numeric(12,2),
+  created_by text,
+  created_at timestamptz not null default now()
 );
 
--- Weekly Snapshots
-CREATE TABLE weekly_snapshot (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  week_start DATE NOT NULL,
-  week_end DATE NOT NULL,
-  insights JSONB NOT NULL DEFAULT '[]',
-  recommendations JSONB NOT NULL DEFAULT '[]',
-  published BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Events
-CREATE TABLE events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  type TEXT CHECK (type IN ('budget_change', 'bid_change', 'creative_rotation', 'note')) NOT NULL,
-  campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
-  description TEXT NOT NULL,
-  value DECIMAL(10,2),
-  created_by TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+create index if not exists fact_daily_date_idx on fact_daily(date desc);
+create index if not exists fact_daily_campaign_idx on fact_daily(campaign_id);
+create index if not exists weekly_briefings_status_idx on weekly_briefings(status);
 ```
+
+### Datenfluss & n8n
+
+1. **LinkedIn → n8n**: n8n sammelt die täglichen/wöchentlichen KPIs direkt aus der LinkedIn Ads API oder einem Export.
+2. **n8n → Dashboard**: Über einen HTTP Request Node sendet n8n die Payload (Felder `dailyMetrics` und optional `weeklyBriefing`) an `POST /api/n8n-ingest` mit Header `Authorization: Bearer $N8N_INGEST_TOKEN`.
+3. **Persistenz**: Die API validiert das Token, schreibt Daily-KPIs in `fact_daily` und speichert das Briefing in `weekly_briefings`.
+4. **UI**: Das Dashboard liest alle Daten live aus Supabase – keine Mockdaten mehr notwendig.
+5. **Publish**: Der Publish-Button im Weekly Tab aktualisiert den Status (`draft` → `published`) und kann weitere Automationen (z.B. n8n Workflows) auslösen.
 
 ## 🎨 Tech Stack
 
@@ -190,8 +191,8 @@ src/
 │   ├── DeepDiveTab.tsx # Creative Analysis
 │   └── LogbuchTab.tsx  # Event Tracking
 ├── lib/               # Utilities
-│   ├── supabase.ts    # Supabase Client
-│   └── mockData.ts    # Mock Data
+│   ├── supabase.ts    # Supabase Client (browser)
+│   └── server/        # Supabase Admin helpers
 └── types/             # TypeScript Types
     └── index.ts       # Type Definitions
 ```
@@ -215,7 +216,7 @@ npm run start
 
 ### Phase 1 (MVP) ✅
 - [x] Basic UI mit Tabs
-- [x] Mock Data Integration
+- [x] Supabase-Datenanbindung & n8n Webhook
 - [x] Charts & Visualisierung
 - [x] Event Tracking
 
@@ -241,5 +242,3 @@ Bei Fragen oder Problemen:
 ## 📄 Lizenz
 
 Private Projekt für interne Nutzung.
-
-

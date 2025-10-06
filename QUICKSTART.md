@@ -70,12 +70,10 @@ Bearbeiten Sie `.env.local`:
 NEXT_PUBLIC_DASHBOARD_PASSWORD=ihr_neues_passwort
 ```
 
-### Mock-Daten anpassen
-Bearbeiten Sie `src/lib/mockData.ts` für:
-- Kampagnen
-- Creatives
-- KPIs
-- Events
+### Datenquelle verbinden
+- Supabase Schema in `supabase/schema.sql` ausführen
+- Credentials in `.env.local` setzen (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `N8N_INGEST_TOKEN`)
+- n8n Workflow anlegen, der LinkedIn KPIs holt und an `/api/n8n-ingest` sendet
 
 ### Styling anpassen
 - Tailwind CSS in `src/app/globals.css`
@@ -129,7 +127,7 @@ Das Dashboard ist responsive. Testen Sie es auf verschiedenen Geräten:
 
 - Verwenden Sie die Browser-Entwicklertools für Debugging
 - Alle Komponenten sind in `src/components/` modular aufgebaut
-- Mock-Daten können einfach durch echte API-Calls ersetzt werden
+- Daten werden live aus Supabase geladen; passen Sie das n8n Payload-Format bei Bedarf an
 - Das Design folgt Tailwind CSS Best Practices
 
 Viel Erfolg mit Ihrem LinkedIn Ads Dashboard! 🎉

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
+import { WeeklyBriefingRecommendation } from '@/types'
 import {
   upsertDailyMetrics,
   saveWeeklyBriefing,
   DailyMetricPayload,
   WeeklyBriefingPayload,
-  WeeklyBriefingRecommendation,
 } from '@/lib/server/kpiRepository'
 
 const AUTH_HEADER_PREFIX = 'Bearer '
@@ -38,6 +38,8 @@ const parseDailyMetrics = (input: unknown): DailyMetricPayload[] => {
     date: item.date,
     campaignId: item.campaignId,
     creativeId: item.creativeId ?? null,
+    campaignName: item.campaignName ?? null,
+    creativeName: item.creativeName ?? null,
     impressions: item.impressions,
     clicks: item.clicks,
     cost: item.cost,
@@ -82,9 +84,14 @@ const parseWeeklyBriefing = (input: unknown): WeeklyBriefingPayload | null => {
             )
           })
           .map((item) => ({
+            id: typeof item.id === 'string' ? item.id : undefined,
             action: item.action,
             reasoning: item.reasoning,
             impact: item.impact,
+            status:
+              item.status === 'approved' || item.status === 'rejected' || item.status === 'pending'
+                ? item.status
+                : undefined,
           }))
       : undefined,
     status: candidate.status === 'published' ? 'published' : 'draft',

@@ -1,9 +1,12 @@
+import { WeeklyBriefingRecommendation } from '@/types'
 import { getSupabaseAdminClient } from './supabaseAdmin'
 
 export interface DailyMetricPayload {
   date: string
   campaignId: string
   creativeId?: string | null
+  campaignName?: string | null
+  creativeName?: string | null
   impressions: number
   clicks: number
   cost: number
@@ -13,12 +16,6 @@ export interface DailyMetricPayload {
   cpm: number
   cvr: number
   cpl: number
-}
-
-export interface WeeklyBriefingRecommendation {
-  action: string
-  reasoning: string
-  impact: 'low' | 'medium' | 'high'
 }
 
 export interface WeeklyBriefingPayload {
@@ -44,6 +41,8 @@ export const upsertDailyMetrics = async (items: DailyMetricPayload[]) => {
     date: item.date,
     campaign_id: item.campaignId,
     creative_id: item.creativeId ?? null,
+    campaign_name: item.campaignName ?? null,
+    creative_name: item.creativeName ?? null,
     impressions: item.impressions,
     clicks: item.clicks,
     cost: item.cost,
@@ -58,7 +57,7 @@ export const upsertDailyMetrics = async (items: DailyMetricPayload[]) => {
 
   return client
     .from('fact_daily')
-    .upsert(normalized, { onConflict: 'date,campaign_id,creative_id' })
+    .upsert(normalized, { onConflict: 'date,campaign_id,creative_key' })
 }
 
 export const saveWeeklyBriefing = async (payload: WeeklyBriefingPayload) => {

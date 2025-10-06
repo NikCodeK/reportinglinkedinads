@@ -44,9 +44,12 @@ if [ ! -f .env.local ]; then
 # Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_URL=your_supabase_url_here
+SUPABASE_SERVICE_ROLE_KEY=service_role_key_from_supabase
 
-# Basic Auth
+# Auth & Webhooks
 NEXT_PUBLIC_DASHBOARD_PASSWORD=admin123
+N8N_INGEST_TOKEN=shared_secret_for_n8n
 EOF
     echo "✅ .env.local erstellt"
     echo "⚠️  Bitte konfigurieren Sie Ihre Supabase-Daten in .env.local"

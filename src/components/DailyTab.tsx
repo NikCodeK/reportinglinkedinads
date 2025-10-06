@@ -1,28 +1,122 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { mockDailyKPIs, mockCampaigns, mockCreatives } from '@/lib/mockData';
-import { FilterOptions } from '@/types';
+import { supabase } from '@/lib/supabase';
+import { DailyKPI, FilterOptions } from '@/types';
 
 const ITEMS_PER_PAGE = 25;
 
+const getDefaultDateRange = () => {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - 6);
+
+  const toISODate = (date: Date) => date.toISOString().slice(0, 10);
+
+  return {
+    start: toISODate(start),
+    end: toISODate(end),
+  };
+};
+
 export default function DailyTab() {
   const [filters, setFilters] = useState<FilterOptions>({
-    dateRange: {
-      start: '2024-01-15',
-      end: '2024-01-21'
-    },
+    dateRange: getDefaultDateRange(),
     campaignIds: []
   });
   const [currentPage, setCurrentPage] = useState(1);
+  const [dailyMetrics, setDailyMetrics] = useState<DailyKPI[]>([]);
+  const [campaignOptions, setCampaignOptions] = useState<Array<{ id: string; name: string | null }>>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const filteredKPIs = useMemo(() => {
-    return mockDailyKPIs.filter(kpi => {
-      const dateInRange = kpi.date >= filters.dateRange.start && kpi.date <= filters.dateRange.end;
-      const campaignMatch = !filters.campaignIds || filters.campaignIds.length === 0 || filters.campaignIds.includes(kpi.campaignId);
-      return dateInRange && campaignMatch;
-    });
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchDailyMetrics = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const { start, end } = filters.dateRange;
+        let query = supabase
+          .from('fact_daily')
+          .select('*')
+          .gte('date', start)
+          .lte('date', end)
+          .order('date', { ascending: false })
+          .order('campaign_id', { ascending: true });
+
+        if (filters.campaignIds && filters.campaignIds.length > 0) {
+          query = query.in('campaign_id', filters.campaignIds);
+        }
+
+        const { data, error } = await query;
+
+        if (!isMounted) {
+          return;
+        }
+
+        if (error) {
+          setError(error.message);
+          setDailyMetrics([]);
+          return;
+        }
+
+        const mapped = (data || []).map((row) => ({
+          id: row.id,
+          date: row.date,
+          campaignId: row.campaign_id,
+          campaignName: row.campaign_name,
+          creativeId: row.creative_id,
+          creativeName: row.creative_name,
+          impressions: row.impressions,
+          clicks: row.clicks,
+          cost: row.cost,
+          leads: row.leads,
+          ctr: row.ctr,
+          cpc: row.cpc,
+          cpm: row.cpm,
+          cvr: row.cvr,
+          cpl: row.cpl,
+          updatedAt: row.updated_at ?? null,
+        } satisfies DailyKPI));
+
+        setDailyMetrics(mapped);
+
+        const campaigns = new Map<string, string | null>();
+        mapped.forEach((item) => {
+          campaigns.set(item.campaignId, item.campaignName ?? null);
+        });
+        setCampaignOptions(Array.from(campaigns.entries()).map(([id, name]) => ({ id, name })));
+
+        const newestUpdate = mapped.reduce<string | null>((acc, item) => {
+          if (!item.updatedAt) {
+            return acc;
+          }
+          if (!acc) {
+            return item.updatedAt;
+          }
+          return item.updatedAt > acc ? item.updatedAt : acc;
+        }, null);
+
+        setLastUpdated(newestUpdate);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchDailyMetrics();
+
+    return () => {
+      isMounted = false;
+    };
   }, [filters]);
+
+  const filteredKPIs = useMemo(() => dailyMetrics, [dailyMetrics]);
 
   const totalPages = Math.ceil(filteredKPIs.length / ITEMS_PER_PAGE) || 1;
 
@@ -40,11 +134,15 @@ export default function DailyTab() {
   const hasResults = filteredKPIs.length > 0;
 
   const getCampaignName = (campaignId: string) => {
-    return mockCampaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
+    const campaign = campaignOptions.find(c => c.id === campaignId);
+    return campaign?.name || campaignId;
   };
 
-  const getCreativeName = (creativeId: string) => {
-    return mockCreatives.find(c => c.id === creativeId)?.name || 'Unknown Creative';
+  const getCreativeName = (creativeId?: string | null, fallbackName?: string | null) => {
+    if (fallbackName) {
+      return fallbackName;
+    }
+    return creativeId || 'N/A';
   };
 
   return (
@@ -101,13 +199,21 @@ export default function DailyTab() {
               className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
               size={3}
             >
-              {mockCampaigns.map(campaign => (
+              {campaignOptions.map(campaign => (
                 <option key={campaign.id} value={campaign.id}>
-                  {campaign.name}
+                  {campaign.name || campaign.id}
                 </option>
               ))}
             </select>
           </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-500">
+          {lastUpdated ? (
+            <span>Letztes Update: {new Date(lastUpdated).toLocaleDateString('de-DE')}</span>
+          ) : (
+            <span>Keine Daten im gewählten Zeitraum</span>
+          )}
+          {loading && <span className="text-blue-600">Lade Daten…</span>}
         </div>
       </div>
 
@@ -119,6 +225,11 @@ export default function DailyTab() {
           </h2>
         </div>
         <div className="overflow-x-auto">
+          {error && (
+            <div className="px-6 py-4 text-sm text-red-600 bg-red-50 border-b border-red-200">
+              Fehler beim Laden der Daten: {error}
+            </div>
+          )}
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -161,6 +272,13 @@ export default function DailyTab() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {!loading && paginatedKPIs.length === 0 && (
+                <tr>
+                  <td colSpan={12} className="px-6 py-4 text-center text-sm text-gray-500">
+                    Keine KPI-Daten im ausgewählten Zeitraum gefunden.
+                  </td>
+                </tr>
+              )}
               {paginatedKPIs.map((kpi) => (
                 <tr key={kpi.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -170,7 +288,7 @@ export default function DailyTab() {
                     {getCampaignName(kpi.campaignId)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getCreativeName(kpi.creativeId)}
+                    {getCreativeName(kpi.creativeId, kpi.creativeName)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                     {kpi.impressions.toLocaleString('de-DE')}
@@ -229,4 +347,3 @@ export default function DailyTab() {
     </div>
   );
 }
-

@@ -50,3 +50,49 @@
 - Authentifizierung zwischen n8n und Endpoint erfolgt über Secret Key.
 - Dashboard benötigt minimalen manuellen Input (Review/Publish), Rest automatisiert.
 - Distribution (Slack/Email/Notion) läuft über n8n; Rückmeldungen werden optional in Supabase gespeichert.
+
+## Supabase-Datenmodell (aktuell)
+- `fact_daily`
+  - KPI-Grundlage pro Datum/Campaign/Creative (inkl. `campaign_name`, `creative_name`)
+  - Kennzahlen: `impressions`, `clicks`, `cost`, `leads`, `ctr`, `cpc`, `cpm`, `cvr`, `cpl`
+  - `created_at`, `updated_at` für Health Monitoring
+- `weekly_briefings`
+  - Wöchentlicher Report inkl. `summary`, `insights`, `highlights`, `kpi_comparisons`, `recommendations`
+  - Statusverwaltung (`draft`/`published`) + `published_at`
+- `events`
+  - Logbuch-Einträge (Budget/Bid/Creative/Notiz etc.)
+  - Optionaler numerischer `value` für Budget/Bid-Änderungen
+
+## Webhook / API Contract
+- Endpoint: `POST /api/n8n-ingest`
+- Auth: Header `Authorization: Bearer <N8N_INGEST_TOKEN>`
+- Payload Felder:
+  - `dailyMetrics`: Array mit Raws (`date`, `campaignId`, `campaignName`, `creativeId`, `creativeName`, KPIs)
+  - `weeklyBriefing`: Objekt mit `weekStart`, `weekEnd`, `summary`, optional `highlights`, `insights`, `recommendations`
+- Response: `{ status: "ok", dailyMetrics: { received }, weeklyBriefing }`
+- Fehlerfälle liefern HTTP 4xx/5xx mit Message + Details
+
+## Dashboard MVP Umfang
+- **Daily Tab**: Supabase-basierte Tabelle mit Datums-/Kampagnenfilter, Pagination, Status "Letztes Update"
+- **Weekly Tab**: TL;DR, KPI-Charts (Impressions/Clicks/Spend, CPL/CVR, CTR/CPM), Kampagnenperformance, Recommendations + Publish-Button
+- **Deep Dive Tab**: Creative-Leaderboard (Top-/Bottom-CPL) inklusive Filtersteuerung
+- **Logbuch Tab**: Event-Liste aus Supabase sowie Formular für neue Einträge
+
+## n8n Workflow-Bausteine
+- Trigger: `Cron` (Daily + Weekly)
+- Datenquellen: LinkedIn Ads API/Export Nodes
+- Mapping: Normalisierung der Felder, Kampagnen-/Creative-Namen anreichern
+- Persistenz: HTTP Request Node → `/api/n8n-ingest` (JSON Body mit `dailyMetrics` / `weeklyBriefing`, Retries + Error Handling)
+- Distribution (optional): Nach erfolgreichem Publish Slack/E-Mail/Docs Updates anstoßen
+
+## Zeitplan & Meilensteine (laufend)
+- **Ingestion ready**: Supabase Schema deployed, Endpoint live, n8n sendet Produktivdaten
+- **UI-Abnahme**: Alle Tabs lesen Supabase, Publish-Status funktioniert, Fehler-/Empty States angezeigt
+- **Automation Launch**: n8n Weekly-Flow generiert Briefing und stößt Distribution nach Publish an
+
+## Risiken & Gegenmaßnahmen
+- LinkedIn API Limits → Caching/Retry in n8n, Export-Zeitpläne prüfen
+- Datenqualität (fehlende KPIs) → Validierung im Endpoint + Fallbacks im UI
+- Auth-Fehler oder Secret-Leaks → Rotierende `x-api-key`, Secrets in n8n vault
+- UI-Performance bei großen Tabellen → Pagination, Lazy Queries
+- Change Management → MVP fokussiert auf Single-Account, Multi-Account erst später
