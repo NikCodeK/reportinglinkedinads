@@ -184,11 +184,14 @@ export interface WeeklyData {
 
 export interface LogEvent {
   id: string;
-  timestamp: string;
-  type: 'campaign_created' | 'campaign_paused' | 'budget_updated' | 'creative_rotation' | 'bid_adjustment';
+  timestamp?: string;
+  type: 'campaign_created' | 'campaign_paused' | 'budget_updated' | 'creative_rotation' | 'bid_adjustment' | 'budget_change' | 'bid_change' | 'note';
   description: string;
   campaignId?: string;
   campaignName?: string;
+  value?: number;
+  createdAt?: string;
+  createdBy?: string;
   details?: Record<string, any>;
 }
 
