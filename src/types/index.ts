@@ -3,12 +3,13 @@ export interface FilterOptions {
     start: string;
     end: string;
   };
-  campaignType: string;
-  status: string;
-  budget: {
+  campaignType?: string;
+  status?: string;
+  budget?: {
     min: number;
     max: number;
   };
+  campaignIds?: string[];
 }
 
 export interface DailyKPI {
