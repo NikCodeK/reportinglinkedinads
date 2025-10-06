@@ -19,18 +19,22 @@ export default function WeeklyTab() {
         impressions: 0,
         clicks: 0,
         cost: 0,
+        leads: 0,
         cpl: 0,
         cvr: 0,
         ctr: 0,
+        cpc: 0,
         cpm: 0
       };
     }
     acc[date].impressions += kpi.impressions;
     acc[date].clicks += kpi.clicks;
     acc[date].cost += kpi.cost;
+    acc[date].leads += kpi.leads;
     acc[date].cpl = (acc[date].cost / (acc[date].clicks * acc[date].cvr / 100)) || 0;
     acc[date].cvr = ((acc[date].clicks * acc[date].cvr / 100) / acc[date].clicks * 100) || 0;
     acc[date].ctr = (acc[date].clicks / acc[date].impressions * 100) || 0;
+    acc[date].cpc = (acc[date].cost / acc[date].clicks) || 0;
     acc[date].cpm = (acc[date].cost / acc[date].impressions * 1000) || 0;
     return acc;
   }, {} as Record<string, WeeklyData>);
