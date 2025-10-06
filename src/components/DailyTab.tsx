@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { mockDailyKPIs, mockCampaigns, mockCreatives } from '@/lib/mockData';
 import { FilterOptions } from '@/types';
+
+const ITEMS_PER_PAGE = 25;
 
 export default function DailyTab() {
   const [filters, setFilters] = useState<FilterOptions>({
@@ -12,6 +14,7 @@ export default function DailyTab() {
     },
     campaignIds: []
   });
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredKPIs = useMemo(() => {
     return mockDailyKPIs.filter(kpi => {
@@ -20,6 +23,21 @@ export default function DailyTab() {
       return dateInRange && campaignMatch;
     });
   }, [filters]);
+
+  const totalPages = Math.ceil(filteredKPIs.length / ITEMS_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const paginatedKPIs = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredKPIs.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredKPIs, currentPage]);
+
+  const hasResults = filteredKPIs.length > 0;
 
   const getCampaignName = (campaignId: string) => {
     return mockCampaigns.find(c => c.id === campaignId)?.name || 'Unknown Campaign';
@@ -43,19 +61,27 @@ export default function DailyTab() {
               <input
                 type="date"
                 value={filters.dateRange.start}
-                onChange={(e) => setFilters(prev => ({
-                  ...prev,
-                  dateRange: { ...prev.dateRange, start: e.target.value }
-                }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCurrentPage(1);
+                  setFilters(prev => ({
+                    ...prev,
+                    dateRange: { ...prev.dateRange, start: value }
+                  }));
+                }}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm"
               />
               <input
                 type="date"
                 value={filters.dateRange.end}
-                onChange={(e) => setFilters(prev => ({
-                  ...prev,
-                  dateRange: { ...prev.dateRange, end: e.target.value }
-                }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setCurrentPage(1);
+                  setFilters(prev => ({
+                    ...prev,
+                    dateRange: { ...prev.dateRange, end: value }
+                  }));
+                }}
                 className="border border-gray-300 rounded-md px-3 py-2 text-sm"
               />
             </div>
@@ -69,6 +95,7 @@ export default function DailyTab() {
               value={filters.campaignIds || []}
               onChange={(e) => {
                 const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
+                setCurrentPage(1);
                 setFilters(prev => ({ ...prev, campaignIds: selectedIds }));
               }}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
@@ -134,7 +161,7 @@ export default function DailyTab() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredKPIs.map((kpi) => (
+              {paginatedKPIs.map((kpi) => (
                 <tr key={kpi.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(kpi.date).toLocaleDateString('de-DE')}
@@ -177,9 +204,29 @@ export default function DailyTab() {
             </tbody>
           </table>
         </div>
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-white">
+          <button
+            type="button"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={!hasResults || currentPage === 1}
+            className="px-3 py-1 text-sm rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Zurück
+          </button>
+          <span className="text-sm text-gray-600">
+            Seite {hasResults ? currentPage : 0} von {hasResults ? totalPages : 0}
+          </span>
+          <button
+            type="button"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={!hasResults || currentPage >= totalPages}
+            className="px-3 py-1 text-sm rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Weiter
+          </button>
+        </div>
       </div>
     </div>
   );
 }
-
 

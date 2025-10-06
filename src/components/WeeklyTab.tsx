@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, ResponsiveContainer } from 'recharts';
 import { mockWeeklySnapshots, mockDailyKPIs, mockCampaigns, mockCreatives } from '@/lib/mockData';
 import { WeeklyData } from '@/types';
@@ -10,57 +10,91 @@ export default function WeeklyTab() {
   const [currentSnapshot] = useState(mockWeeklySnapshots[0]);
   const [recommendations, setRecommendations] = useState(currentSnapshot.recommendations);
 
-  // Aggregate data for charts
-  const weeklyData = mockDailyKPIs.reduce((acc, kpi) => {
-    const date = kpi.date;
-    if (!acc[date]) {
-      acc[date] = {
-        date: new Date(date).toLocaleDateString('de-DE', { weekday: 'short' }),
+  const { chartData, campaignPerformance } = useMemo(() => {
+    const dateTotals: Record<string, { date: string; impressions: number; clicks: number; cost: number; leads: number }> = {};
+    const campaignTotals = new Map<string, { id: string; name: string; impressions: number; clicks: number; cost: number; leads: number }>();
+
+    mockCampaigns.forEach((campaign) => {
+      campaignTotals.set(campaign.id, {
+        id: campaign.id,
+        name: campaign.name,
         impressions: 0,
         clicks: 0,
         cost: 0,
         leads: 0,
-        cpl: 0,
-        cvr: 0,
-        ctr: 0,
-        cpc: 0,
-        cpm: 0
+      });
+    });
+
+    mockDailyKPIs.forEach((kpi) => {
+      if (!dateTotals[kpi.date]) {
+        dateTotals[kpi.date] = {
+          date: kpi.date,
+          impressions: 0,
+          clicks: 0,
+          cost: 0,
+          leads: 0,
+        };
+      }
+
+      const byDate = dateTotals[kpi.date];
+      byDate.impressions += kpi.impressions;
+      byDate.clicks += kpi.clicks;
+      byDate.cost += kpi.cost;
+      byDate.leads += kpi.leads;
+
+      const campaign = campaignTotals.get(kpi.campaignId);
+      if (campaign) {
+        campaign.impressions += kpi.impressions;
+        campaign.clicks += kpi.clicks;
+        campaign.cost += kpi.cost;
+        campaign.leads += kpi.leads;
+      }
+    });
+
+    const chartData = Object.values(dateTotals)
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map<WeeklyData>((entry) => {
+        const ctr = entry.impressions > 0 ? (entry.clicks / entry.impressions) * 100 : 0;
+        const cpc = entry.clicks > 0 ? entry.cost / entry.clicks : 0;
+        const cpm = entry.impressions > 0 ? (entry.cost / entry.impressions) * 1000 : 0;
+        const cvr = entry.clicks > 0 ? (entry.leads / entry.clicks) * 100 : 0;
+        const cpl = entry.leads > 0 ? entry.cost / entry.leads : 0;
+
+        return {
+          date: new Date(entry.date).toLocaleDateString('de-DE', { weekday: 'short' }),
+          impressions: entry.impressions,
+          clicks: entry.clicks,
+          cost: entry.cost,
+          leads: entry.leads,
+          ctr,
+          cpc,
+          cpm,
+          cvr,
+          cpl,
+        };
+      });
+
+    const campaignPerformance = Array.from(campaignTotals.values()).map((campaign) => {
+      const ctr = campaign.impressions > 0 ? (campaign.clicks / campaign.impressions) * 100 : 0;
+      const cpc = campaign.clicks > 0 ? campaign.cost / campaign.clicks : 0;
+      const cpl = campaign.leads > 0 ? campaign.cost / campaign.leads : 0;
+      const cvr = campaign.clicks > 0 ? (campaign.leads / campaign.clicks) * 100 : 0;
+
+      return {
+        name: campaign.name,
+        impressions: campaign.impressions,
+        clicks: campaign.clicks,
+        cost: campaign.cost,
+        leads: campaign.leads,
+        ctr,
+        cpc,
+        cpl,
+        cvr,
       };
-    }
-    acc[date].impressions += kpi.impressions;
-    acc[date].clicks += kpi.clicks;
-    acc[date].cost += kpi.cost;
-    acc[date].leads += kpi.leads;
-    acc[date].cpl = (acc[date].cost / (acc[date].clicks * acc[date].cvr / 100)) || 0;
-    acc[date].cvr = ((acc[date].clicks * acc[date].cvr / 100) / acc[date].clicks * 100) || 0;
-    acc[date].ctr = (acc[date].clicks / acc[date].impressions * 100) || 0;
-    acc[date].cpc = (acc[date].cost / acc[date].clicks) || 0;
-    acc[date].cpm = (acc[date].cost / acc[date].impressions * 1000) || 0;
-    return acc;
-  }, {} as Record<string, WeeklyData>);
+    });
 
-  const chartData = Object.values(weeklyData);
-
-  // Campaign performance data
-  const campaignPerformance = mockCampaigns.map(campaign => {
-    const campaignKPIs = mockDailyKPIs.filter(kpi => kpi.campaignId === campaign.id);
-    const totalImpressions = campaignKPIs.reduce((sum, kpi) => sum + kpi.impressions, 0);
-    const totalClicks = campaignKPIs.reduce((sum, kpi) => sum + kpi.clicks, 0);
-    const totalCost = campaignKPIs.reduce((sum, kpi) => sum + kpi.cost, 0);
-    const totalLeads = campaignKPIs.reduce((sum, kpi) => sum + kpi.leads, 0);
-    
-    return {
-      name: campaign.name,
-      impressions: totalImpressions,
-      clicks: totalClicks,
-      cost: totalCost,
-      leads: totalLeads,
-      ctr: totalImpressions > 0 ? (totalClicks / totalImpressions * 100) : 0,
-      cpc: totalClicks > 0 ? (totalCost / totalClicks) : 0,
-      cpl: totalLeads > 0 ? (totalCost / totalLeads) : 0,
-      cvr: totalClicks > 0 ? (totalLeads / totalClicks * 100) : 0
-    };
-  });
+    return { chartData, campaignPerformance };
+  }, []);
 
   const handleRecommendationAction = (recId: string, action: 'approved' | 'rejected') => {
     setRecommendations(prev => 
@@ -311,5 +345,4 @@ export default function WeeklyTab() {
     </div>
   );
 }
-
 
