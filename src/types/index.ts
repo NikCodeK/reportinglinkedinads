@@ -24,6 +24,9 @@ export interface DailyKPI {
   conversions: number;
   cost: number;
   leads: number;
+  cpm: number;
+  cvr: number;
+  cpl: number;
 }
 
 export interface Campaign {
