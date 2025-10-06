@@ -13,13 +13,17 @@ export interface FilterOptions {
 }
 
 export interface DailyKPI {
+  id: string;
   date: string;
+  campaignId: string;
+  creativeId: string;
   impressions: number;
   clicks: number;
   ctr: number;
   cpc: number;
   conversions: number;
   cost: number;
+  leads: number;
 }
 
 export interface Campaign {
