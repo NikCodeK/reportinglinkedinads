@@ -245,13 +245,13 @@ export default function LogbuchTab() {
                           {eventLabels[event.type]}
                         </span>
                         <span className="text-sm text-gray-500">
-                          {new Date(event.createdAt).toLocaleDateString('de-DE', {
+                          {event.createdAt ? new Date(event.createdAt).toLocaleDateString('de-DE', {
                             day: '2-digit',
                             month: '2-digit',
                             year: 'numeric',
                             hour: '2-digit',
                             minute: '2-digit'
-                          })}
+                          }) : 'Kein Datum'}
                         </span>
                         {event.campaignId && (
                           <span className="text-sm text-blue-600 font-medium">
