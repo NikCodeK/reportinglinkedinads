@@ -107,7 +107,7 @@ export default function DeepDiveTab() {
             </label>
             <select
               multiple
-              value={filters.campaignIds}
+              value={filters.campaignIds || []}
               onChange={(e) => {
                 const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
                 setFilters(prev => ({ ...prev, campaignIds: selectedIds }));
@@ -360,7 +360,7 @@ export default function DeepDiveTab() {
           <li className="flex items-start">
             <span className="mr-2 mt-0.5">📊</span>
             <span>
-              <strong>Durchschnittliche CPL:</strong> €{(creativePerformance.reduce((sum, c) => sum + c.cpl, 0) / creativePerformance.length).toFixed(2)}
+              <strong>Durchschnittliche CPL:</strong> €{(creativePerformance.length > 0 ? creativePerformance.reduce((sum, c) => sum + c.cpl, 0) / creativePerformance.length : 0).toFixed(2)}
             </span>
           </li>
         </ul>

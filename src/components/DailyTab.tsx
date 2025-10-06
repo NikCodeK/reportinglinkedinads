@@ -66,7 +66,7 @@ export default function DailyTab() {
             </label>
             <select
               multiple
-              value={filters.campaignIds}
+              value={filters.campaignIds || []}
               onChange={(e) => {
                 const selectedIds = Array.from(e.target.selectedOptions, option => option.value);
                 setFilters(prev => ({ ...prev, campaignIds: selectedIds }));
