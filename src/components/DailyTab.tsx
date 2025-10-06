@@ -16,7 +16,7 @@ export default function DailyTab() {
   const filteredKPIs = useMemo(() => {
     return mockDailyKPIs.filter(kpi => {
       const dateInRange = kpi.date >= filters.dateRange.start && kpi.date <= filters.dateRange.end;
-      const campaignMatch = filters.campaignIds.length === 0 || filters.campaignIds.includes(kpi.campaignId);
+      const campaignMatch = !filters.campaignIds || filters.campaignIds.length === 0 || filters.campaignIds.includes(kpi.campaignId);
       return dateInRange && campaignMatch;
     });
   }, [filters]);
