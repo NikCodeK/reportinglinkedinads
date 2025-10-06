@@ -311,7 +311,7 @@ export default function LogbuchTab() {
         <div className="bg-white p-4 rounded-lg shadow">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <Image className="w-8 h-8 text-purple-600" />
+              <Image className="w-8 h-8 text-purple-600" alt="Creative Rotation Icon" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-500">Creative Rotationen</p>
