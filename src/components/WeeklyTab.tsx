@@ -92,7 +92,7 @@ export default function WeeklyTab() {
         <h2 className="text-lg font-semibold text-blue-900 mb-4">📊 TL;DR - Diese Woche</h2>
         <ul className="space-y-2">
           {currentSnapshot.insights.map((insight, index) => (
-            <li key={index} className="text-blue-800 flex items-start">
+            <li key={`insight-${index}-${insight.slice(0, 20)}`} className="text-blue-800 flex items-start">
               <span className="text-blue-500 mr-2">•</span>
               {insight}
             </li>
