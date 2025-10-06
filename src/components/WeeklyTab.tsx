@@ -62,7 +62,7 @@ export default function WeeklyTab() {
     };
   });
 
-  const handleRecommendationAction = (recId: string, action: 'accepted' | 'rejected') => {
+  const handleRecommendationAction = (recId: string, action: 'approved' | 'rejected') => {
     setRecommendations(prev => 
       prev.map(rec => 
         rec.id === recId 
@@ -244,7 +244,7 @@ export default function WeeklyTab() {
                       {rec.status === 'pending' && (
                         <>
                           <button
-                            onClick={() => handleRecommendationAction(rec.id, 'accepted')}
+                            onClick={() => handleRecommendationAction(rec.id, 'approved')}
                             className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
                           >
                             <CheckCircle className="w-3 h-3 mr-1" />
@@ -259,7 +259,7 @@ export default function WeeklyTab() {
                           </button>
                         </>
                       )}
-                      {rec.status === 'accepted' && (
+                      {rec.status === 'approved' && (
                         <span className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-green-800 bg-green-100">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Akzeptiert
