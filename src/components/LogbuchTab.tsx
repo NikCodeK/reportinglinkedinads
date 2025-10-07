@@ -43,6 +43,7 @@ export default function LogbuchTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -104,6 +105,12 @@ export default function LogbuchTab() {
     };
   }, []);
 
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingEventId(null);
+    setFormData(DEFAULT_FORM_STATE);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -118,31 +125,61 @@ export default function LogbuchTab() {
       created_by: formData.createdBy || 'System',
     };
 
-    const { data, error: insertError } = await supabase
-      .from('events')
-      .insert(payload)
-      .select()
-      .maybeSingle();
+    if (editingEventId) {
+      const { data, error: updateError } = await supabase
+        .from('events')
+        .update(payload)
+        .eq('id', editingEventId)
+        .select()
+        .maybeSingle();
 
-    if (insertError) {
-      setError(`Event konnte nicht gespeichert werden: ${insertError.message}`);
-      setSubmitting(false);
-      return;
+      if (updateError) {
+        setError(`Event konnte nicht aktualisiert werden: ${updateError.message}`);
+        setSubmitting(false);
+        return;
+      }
+
+      setEvents((prev) =>
+        prev.map((event) =>
+          event.id === editingEventId
+            ? {
+                ...event,
+                type: (data?.type || formData.type) as LogEvent['type'],
+                campaignId: data?.campaign_id || undefined,
+                description: data?.description || formData.description,
+                value: data?.value !== null ? Number(data?.value) : undefined,
+                createdBy: data?.created_by || formData.createdBy,
+              }
+            : event
+        )
+      );
+    } else {
+      const { data, error: insertError } = await supabase
+        .from('events')
+        .insert(payload)
+        .select()
+        .maybeSingle();
+
+      if (insertError) {
+        setError(`Event konnte nicht gespeichert werden: ${insertError.message}`);
+        setSubmitting(false);
+        return;
+      }
+
+      const newEvent: LogEvent = {
+        id: data?.id ?? `event-${Date.now()}`,
+        type: (data?.type || formData.type) as LogEvent['type'],
+        campaignId: data?.campaign_id || undefined,
+        description: data?.description || formData.description,
+        value: data?.value !== null ? Number(data?.value) : undefined,
+        createdAt: data?.created_at,
+        createdBy: data?.created_by || formData.createdBy,
+      };
+
+      setEvents((prev) => [newEvent, ...prev]);
     }
 
-    const newEvent: LogEvent = {
-      id: data?.id,
-      type: (data?.type || formData.type) as LogEvent['type'],
-      campaignId: data?.campaign_id || undefined,
-      description: data?.description || formData.description,
-      value: data?.value !== null ? Number(data?.value) : undefined,
-      createdAt: data?.created_at,
-      createdBy: data?.created_by || formData.createdBy,
-    };
-
-    setEvents((prev) => [newEvent, ...prev]);
-    setFormData(DEFAULT_FORM_STATE);
-    setShowForm(false);
+    closeForm();
     setSubmitting(false);
   };
 
@@ -176,28 +213,29 @@ export default function LogbuchTab() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-lg shadow-slate-900/40">
+      <section className="rounded-3xl border border-white/10 bg-slate-950/70 p-6 shadow-lg shadow-slate-950/40">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
-              <Sparkles className="h-5 w-5 text-blue-100" />
+              <Sparkles className="h-5 w-5 text-slate-100" />
             </span>
             <div>
               <h2 className="text-lg font-semibold text-white">Logbuch & Timeline</h2>
-              <p className="text-sm text-blue-100/70">Dokumentiere Budget-Änderungen, Tests und Learnings.</p>
+              <p className="text-sm text-slate-200/70">Budgetänderungen, Tests und Learnings im Verlauf.</p>
             </div>
           </div>
           <button
             onClick={() => {
               setFormData(DEFAULT_FORM_STATE);
+              setEditingEventId(null);
               setShowForm(true);
             }}
-            className="inline-flex items-center gap-2 rounded-full border border-blue-400/50 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-100 hover:bg-blue-500/20"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-300/60 bg-slate-100/10 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-slate-100/20"
           >
             <Plus className="h-4 w-4" /> Event hinzufügen
           </button>
         </div>
-        <p className="mt-3 text-xs text-blue-100/70">
+        <p className="mt-3 text-xs text-slate-200/70">
           {loading ? 'Lade Ereignisse…' : `${events.length} Einträge erfasst`}
         </p>
         {error && <p className="mt-2 text-sm text-rose-200">{error}</p>}
@@ -205,15 +243,17 @@ export default function LogbuchTab() {
 
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur">
-          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/60">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/85 p-6 shadow-2xl shadow-slate-950/60">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-white">Neues Event hinzufügen</h3>
-                <p className="text-xs text-blue-100/70">Halte Optimierungen und Hypothesen strukturiert fest.</p>
+                <h3 className="text-lg font-semibold text-white">
+                  {editingEventId ? 'Event bearbeiten' : 'Neues Event hinzufügen'}
+                </h3>
+                <p className="text-xs text-slate-200/70">Halte Optimierungen und Hypothesen strukturiert fest.</p>
               </div>
               <button
-                onClick={() => setShowForm(false)}
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-blue-100/70"
+                onClick={closeForm}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200/70"
               >
                 Schließen
               </button>
@@ -221,7 +261,7 @@ export default function LogbuchTab() {
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-200/80">
                   Event Typ
                 </label>
                 <select
@@ -235,7 +275,7 @@ export default function LogbuchTab() {
                       value: requiresValue ? prev.value : '',
                     }));
                   }}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/40"
                 >
                   {EVENT_TYPES.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -246,13 +286,13 @@ export default function LogbuchTab() {
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-200/80">
                   Kampagne (optional)
                 </label>
                 <select
                   value={formData.campaignId}
                   onChange={(e) => setFormData((prev) => ({ ...prev, campaignId: e.target.value }))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/40"
                 >
                   <option value="">Alle Kampagnen</option>
                   {campaignOptions.map((campaign) => (
@@ -265,7 +305,7 @@ export default function LogbuchTab() {
 
               {EVENT_TYPES.find((entry) => entry.value === formData.type)?.requiresValue && (
                 <div>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-200/80">
                     Wert (€)
                   </label>
                   <input
@@ -273,7 +313,7 @@ export default function LogbuchTab() {
                     step="0.01"
                     value={formData.value}
                     onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
-                    className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/40"
                     placeholder="z.B. 250"
                     required
                   />
@@ -281,45 +321,51 @@ export default function LogbuchTab() {
               )}
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-200/80">
                   Beschreibung
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  className="h-24 w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="h-24 w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/40"
                   placeholder="Beschreibe Maßnahme, Ziel oder Hypothese"
                   required
                 />
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-200/80">
                   Erstellt von
                 </label>
                 <input
                   type="text"
                   value={formData.createdBy}
                   onChange={(e) => setFormData((prev) => ({ ...prev, createdBy: e.target.value }))}
-                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/70 px-3 py-2 text-sm text-slate-100 focus:border-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-200/40"
                 />
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
-                  className="rounded-full border border-white/10 px-4 py-1.5 text-xs font-medium text-blue-100 hover:border-blue-400/40"
+                  onClick={closeForm}
+                  className="rounded-full border border-white/10 px-4 py-1.5 text-xs font-medium text-slate-200 hover:border-slate-200/40"
                   disabled={submitting}
                 >
                   Abbrechen
                 </button>
                 <button
                   type="submit"
-                  className="rounded-full border border-blue-400/50 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-100 hover:bg-blue-500/20 disabled:opacity-40"
+                  className="rounded-full border border-slate-300/60 bg-slate-100/10 px-4 py-1.5 text-xs font-medium text-slate-100 hover:bg-slate-100/20 disabled:opacity-40"
                   disabled={submitting}
                 >
-                  {submitting ? 'Speichere…' : 'Speichern'}
+                  {submitting
+                    ? editingEventId
+                      ? 'Aktualisiere…'
+                      : 'Speichere…'
+                    : editingEventId
+                      ? 'Aktualisieren'
+                      : 'Speichern'}
                 </button>
               </div>
             </form>
@@ -327,47 +373,70 @@ export default function LogbuchTab() {
         </div>
       )}
 
-      <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-2 shadow-inner shadow-slate-900/40">
+      <section className="rounded-3xl border border-white/10 bg-slate-950/70 p-2 shadow-inner shadow-slate-950/40">
         {loading && (
-          <div className="px-6 py-4 text-sm text-blue-100/70">Events werden geladen…</div>
+          <div className="px-6 py-4 text-sm text-slate-200/70">Events werden geladen…</div>
         )}
         {!loading && events.length === 0 && (
-          <div className="px-6 py-4 text-sm text-blue-100/70">Noch keine Events vorhanden.</div>
+          <div className="px-6 py-4 text-sm text-slate-200/70">Noch keine Events vorhanden.</div>
         )}
         {events.map((event) => {
           const Icon = getEventIcon(event.type);
           const campaignName = getCampaignName(event.campaignId);
           return (
-            <div key={event.id} className="flex items-start gap-4 border-b border-white/5 px-6 py-4 last:border-none">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10">
-                <Icon className="h-5 w-5 text-blue-100" />
-              </span>
-              <div className="flex-1">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h4 className="text-sm font-semibold text-white">{getEventLabel(event.type)}</h4>
-                  <span className="flex items-center gap-2 text-xs text-blue-100/70">
-                    <Calendar className="h-3 w-3" />
-                    {event.createdAt ? new Date(event.createdAt).toLocaleString('de-DE') : 'Unbekannt'}
-                  </span>
+            <div
+              key={event.id}
+              className="flex flex-col gap-4 border-b border-white/10 px-6 py-4 last:border-none sm:flex-row sm:items-start sm:justify-between"
+            >
+              <div className="flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+                  <Icon className="h-5 w-5 text-slate-100" />
+                </span>
+                <div>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <h4 className="text-sm font-semibold text-white">{getEventLabel(event.type)}</h4>
+                    <span className="flex items-center gap-2 text-xs text-slate-200/70">
+                      <Calendar className="h-3 w-3" />
+                      {event.createdAt ? new Date(event.createdAt).toLocaleString('de-DE') : 'Unbekannt'}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-200/80">{event.description}</p>
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-200/70">
+                    {campaignName && (
+                      <span className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1">
+                        Kampagne: {campaignName}
+                      </span>
+                    )}
+                    {event.value !== undefined && (
+                      <span className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1">
+                        Wert: {formatEventValue(event)}
+                      </span>
+                    )}
+                    {event.createdBy && (
+                      <span className="rounded-full border border-white/10 bg-slate-900/70 px-3 py-1">
+                        Von: {event.createdBy}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="mt-2 text-sm text-blue-100/80">{event.description}</p>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-blue-100/70">
-                  {campaignName && (
-                    <span className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1">
-                      Kampagne: {campaignName}
-                    </span>
-                  )}
-                  {event.value !== undefined && (
-                    <span className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1">
-                      Wert: {formatEventValue(event)}
-                    </span>
-                  )}
-                  {event.createdBy && (
-                    <span className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1">
-                      Von: {event.createdBy}
-                    </span>
-                  )}
-                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setFormData({
+                      type: event.type,
+                      campaignId: event.campaignId || '',
+                      description: event.description,
+                      value: event.value !== undefined ? String(event.value) : '',
+                      createdBy: event.createdBy || 'System',
+                    });
+                    setEditingEventId(event.id || null);
+                    setShowForm(true);
+                  }}
+                  className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 hover:border-slate-200/40 hover:bg-slate-200/10"
+                >
+                  Bearbeiten
+                </button>
               </div>
             </div>
           );

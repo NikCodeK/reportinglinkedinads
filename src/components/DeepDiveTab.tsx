@@ -117,6 +117,12 @@ export default function DeepDiveTab() {
     };
   }, [filters]);
 
+  const getCampaignName = (campaignId: string | null | undefined) => {
+    if (!campaignId) return 'Alle Kampagnen';
+    const campaign = campaignOptions.find((c) => c.id === campaignId);
+    return campaign?.name || campaignId;
+  };
+
   const creativePerformance = useMemo(() => {
     const stats = new Map<string, CreativeStatRow>();
 
@@ -169,12 +175,6 @@ export default function DeepDiveTab() {
   const topPerformers = creativePerformance.slice(0, 3);
   const bottomPerformers = creativePerformance.slice(-3).reverse();
 
-const getCampaignName = (campaignId: string | null | undefined, campaignOptions: CampaignOption[]) => {
-  if (!campaignId) return 'Alle Kampagnen';
-  const campaign = campaignOptions.find((c) => c.id === campaignId);
-  return campaign?.name || campaignId;
-};
-
   const renderCreativeCard = (
     creative: CreativeStatRow,
     index: number,
@@ -196,7 +196,7 @@ const getCampaignName = (campaignId: string | null | undefined, campaignOptions:
             </span>
             <div>
               <h4 className="text-sm font-semibold text-white">{creative.creativeName}</h4>
-              <p className="text-xs text-blue-100/70">{getCampaignName(creative.campaignId, campaignOptions)}</p>
+              <p className="text-xs text-blue-100/70">{getCampaignName(creative.campaignId)}</p>
             </div>
           </div>
         </div>
