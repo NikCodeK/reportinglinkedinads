@@ -32,14 +32,15 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {renderTabContent()}
-      </main>
+    <div className="min-h-screen bg-slate-950">
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-gradient-to-br from-slate-800 via-slate-950 to-slate-950 blur-3xl opacity-80" />
+        <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <main className="relative z-10 max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+          {renderTabContent()}
+        </main>
+      </div>
     </div>
   );
 }
-
-
 

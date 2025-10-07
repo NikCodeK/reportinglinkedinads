@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import type { ComponentType } from 'react';
 import { supabase } from '@/lib/supabase';
 import { LogEvent } from '@/types';
-import { Plus, Calendar, DollarSign, Target, Image, FileText } from 'lucide-react';
+import { Plus, Calendar, DollarSign, Target, Image, FileText, Sparkles } from 'lucide-react';
 
 type CampaignOption = { id: string; name: string | null };
 
@@ -63,9 +63,7 @@ export default function LogbuchTab() {
             .limit(2000),
         ]);
 
-        if (!isMounted) {
-          return;
-        }
+        if (!isMounted) return;
 
         if (eventsError) {
           setError(`Events konnten nicht geladen werden: ${eventsError.message}`);
@@ -149,17 +147,13 @@ export default function LogbuchTab() {
   };
 
   const getCampaignName = (campaignId?: string) => {
-    if (!campaignId) {
-      return null;
-    }
+    if (!campaignId) return null;
     const campaign = campaignOptions.find((c) => c.id === campaignId);
     return campaign?.name || campaignId;
   };
 
   const formatEventValue = (event: LogEvent) => {
-    if (event.value === undefined) {
-      return '';
-    }
+    if (event.value === undefined) return '';
 
     const formatter = new Intl.NumberFormat('de-DE', {
       style: 'currency',
@@ -182,173 +176,194 @@ export default function LogbuchTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Logbuch</h2>
-          <p className="text-gray-600 mt-1">Verfolgen Sie alle Änderungen und Notizen zu Ihren Kampagnen</p>
+      <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-lg shadow-slate-900/40">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10">
+              <Sparkles className="h-5 w-5 text-blue-100" />
+            </span>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Logbuch & Timeline</h2>
+              <p className="text-sm text-blue-100/70">Dokumentiere Budget-Änderungen, Tests und Learnings.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setFormData(DEFAULT_FORM_STATE);
+              setShowForm(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-full border border-blue-400/50 bg-blue-500/10 px-4 py-2 text-sm font-medium text-blue-100 hover:bg-blue-500/20"
+          >
+            <Plus className="h-4 w-4" /> Event hinzufügen
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setFormData(DEFAULT_FORM_STATE);
-            setShowForm(true);
-          }}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Event hinzufügen
-        </button>
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
+        <p className="mt-3 text-xs text-blue-100/70">
+          {loading ? 'Lade Ereignisse…' : `${events.length} Einträge erfasst`}
+        </p>
+        {error && <p className="mt-2 text-sm text-rose-200">{error}</p>}
+      </section>
 
       {showForm && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Neues Event hinzufügen</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 backdrop-blur">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/80 p-6 shadow-2xl shadow-slate-950/60">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Neues Event hinzufügen</h3>
+                <p className="text-xs text-blue-100/70">Halte Optimierungen und Hypothesen strukturiert fest.</p>
+              </div>
+              <button
+                onClick={() => setShowForm(false)}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-blue-100/70"
+              >
+                Schließen
+              </button>
+            </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Event Typ</label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => {
-                      const type = e.target.value as LogEvent['type'];
-                      const requiresValue = EVENT_TYPES.find((entry) => entry.value === type)?.requiresValue;
-                      setFormData((prev) => ({
-                        ...prev,
-                        type,
-                        value: requiresValue ? prev.value : '',
-                      }));
-                    }}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-                  >
-                    {EVENT_TYPES.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                  Event Typ
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => {
+                    const type = e.target.value as LogEvent['type'];
+                    const requiresValue = EVENT_TYPES.find((entry) => entry.value === type)?.requiresValue;
+                    setFormData((prev) => ({
+                      ...prev,
+                      type,
+                      value: requiresValue ? prev.value : '',
+                    }));
+                  }}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  {EVENT_TYPES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Kampagne (optional)</label>
-                  <select
-                    value={formData.campaignId}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, campaignId: e.target.value }))}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-                  >
-                    <option value="">Alle Kampagnen</option>
-                    {campaignOptions.map((campaign) => (
-                      <option key={campaign.id} value={campaign.id}>
-                        {campaign.name || campaign.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                  Kampagne (optional)
+                </label>
+                <select
+                  value={formData.campaignId}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, campaignId: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                >
+                  <option value="">Alle Kampagnen</option>
+                  {campaignOptions.map((campaign) => (
+                    <option key={campaign.id} value={campaign.id}>
+                      {campaign.name || campaign.id}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              {EVENT_TYPES.find((entry) => entry.value === formData.type)?.requiresValue && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Beschreibung</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full h-20"
-                    placeholder="Beschreiben Sie das Event..."
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                    Wert (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.value}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
+                    className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                    placeholder="z.B. 250"
                     required
                   />
                 </div>
+              )}
 
-                {EVENT_TYPES.find((entry) => entry.value === formData.type)?.requiresValue && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Wert (€)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.value}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, value: e.target.value }))}
-                      className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-                      placeholder="z.B. 1000"
-                      required
-                    />
-                  </div>
-                )}
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                  Beschreibung
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+                  className="h-24 w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                  placeholder="Beschreibe Maßnahme, Ziel oder Hypothese"
+                  required
+                />
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Erstellt von</label>
-                  <input
-                    type="text"
-                    value={formData.createdBy}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, createdBy: e.target.value }))}
-                    className="border border-gray-300 rounded-md px-3 py-2 text-sm w-full"
-                  />
-                </div>
+              <div>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-100/80">
+                  Erstellt von
+                </label>
+                <input
+                  type="text"
+                  value={formData.createdBy}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, createdBy: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 px-3 py-2 text-sm text-slate-100 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+                />
+              </div>
 
-                <div className="flex justify-end space-x-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowForm(false)}
-                    className="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    disabled={submitting}
-                  >
-                    Abbrechen
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                    disabled={submitting}
-                  >
-                    {submitting ? 'Speichere…' : 'Speichern'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowForm(false)}
+                  className="rounded-full border border-white/10 px-4 py-1.5 text-xs font-medium text-blue-100 hover:border-blue-400/40"
+                  disabled={submitting}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full border border-blue-400/50 bg-blue-500/10 px-4 py-1.5 text-xs font-medium text-blue-100 hover:bg-blue-500/20 disabled:opacity-40"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Speichere…' : 'Speichern'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
+      <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-2 shadow-inner shadow-slate-900/40">
         {loading && (
-          <div className="px-6 py-4 text-sm text-blue-600">Events werden geladen…</div>
+          <div className="px-6 py-4 text-sm text-blue-100/70">Events werden geladen…</div>
         )}
         {!loading && events.length === 0 && (
-          <div className="px-6 py-4 text-sm text-gray-500">Noch keine Events vorhanden.</div>
+          <div className="px-6 py-4 text-sm text-blue-100/70">Noch keine Events vorhanden.</div>
         )}
         {events.map((event) => {
           const Icon = getEventIcon(event.type);
           const campaignName = getCampaignName(event.campaignId);
           return (
-            <div key={event.id} className="px-6 py-4 flex items-start space-x-4">
-              <div className="flex-shrink-0">
-                <span className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-blue-50 text-blue-600">
-                  <Icon className="w-5 h-5" />
-                </span>
-              </div>
+            <div key={event.id} className="flex items-start gap-4 border-b border-white/5 px-6 py-4 last:border-none">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+                <Icon className="h-5 w-5 text-blue-100" />
+              </span>
               <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-medium text-gray-900">{getEventLabel(event.type)}</h4>
-                  <span className="text-xs text-gray-500 flex items-center">
-                    <Calendar className="w-3 h-3 mr-1" />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="text-sm font-semibold text-white">{getEventLabel(event.type)}</h4>
+                  <span className="flex items-center gap-2 text-xs text-blue-100/70">
+                    <Calendar className="h-3 w-3" />
                     {event.createdAt ? new Date(event.createdAt).toLocaleString('de-DE') : 'Unbekannt'}
                   </span>
                 </div>
-                <p className="text-sm text-gray-700 mt-1">{event.description}</p>
-                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                <p className="mt-2 text-sm text-blue-100/80">{event.description}</p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-blue-100/70">
                   {campaignName && (
-                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
+                    <span className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1">
                       Kampagne: {campaignName}
                     </span>
                   )}
                   {event.value !== undefined && (
-                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
+                    <span className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1">
                       Wert: {formatEventValue(event)}
                     </span>
                   )}
                   {event.createdBy && (
-                    <span className="inline-flex items-center px-2 py-1 bg-gray-100 rounded-full">
+                    <span className="rounded-full border border-white/10 bg-slate-900/60 px-3 py-1">
                       Von: {event.createdBy}
                     </span>
                   )}
@@ -357,7 +372,7 @@ export default function LogbuchTab() {
             </div>
           );
         })}
-      </div>
+      </section>
     </div>
   );
 }

@@ -1,0 +1,151 @@
+{
+  "name": "LinkedIn Ads → Dashboard (Daily Import)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Schedule: Daily at 6am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Beispiel: Transformiere LinkedIn Ads Daten zu Dashboard Format\n// HINWEIS: Passen Sie dies an Ihre tatsächlichen Datenquellen an\n\n// Beispiel-Daten (ersetzen Sie dies mit echten LinkedIn Ads Daten)\nconst today = new Date().toISOString().split('T')[0];\n\nconst dailyMetrics = [\n  {\n    date: today,\n    campaignId: 'campaign-' + Date.now(),\n    campaignName: 'Brand Awareness Campaign',\n    creativeId: 'creative-001',\n    creativeName: 'Summer Sale Banner',\n    impressions: Math.floor(Math.random() * 10000) + 5000,\n    clicks: Math.floor(Math.random() * 500) + 100,\n    cost: parseFloat((Math.random() * 200 + 50).toFixed(2)),\n    leads: Math.floor(Math.random() * 50) + 10,\n    ctr: 0,\n    cpc: 0,\n    cpm: 0,\n    cvr: 0,\n    cpl: 0\n  }\n];\n\n// Berechne KPIs\ndailyMetrics.forEach(metric => {\n  metric.ctr = metric.impressions > 0 ? parseFloat(((metric.clicks / metric.impressions) * 100).toFixed(2)) : 0;\n  metric.cpc = metric.clicks > 0 ? parseFloat((metric.cost / metric.clicks).toFixed(4)) : 0;\n  metric.cpm = metric.impressions > 0 ? parseFloat(((metric.cost / metric.impressions) * 1000).toFixed(4)) : 0;\n  metric.cvr = metric.clicks > 0 ? parseFloat(((metric.leads / metric.clicks) * 100).toFixed(2)) : 0;\n  metric.cpl = metric.leads > 0 ? parseFloat((metric.cost / metric.leads).toFixed(4)) : 0;\n});\n\n// Optional: Weekly Briefing\nconst weekStart = new Date();\nweekStart.setDate(weekStart.getDate() - 6);\n\nconst weeklyBriefing = {\n  weekStart: weekStart.toISOString().split('T')[0],\n  weekEnd: today,\n  summary: `Automatischer Wochenbericht für ${weekStart.toISOString().split('T')[0]} bis ${today}`,\n  highlights: [\n    'Beispiel: CTR über Durchschnitt',\n    'Beispiel: Kosten im Budget'\n  ],\n  insights: [\n    'Beispiel: Mobile Traffic wächst'\n  ],\n  recommendations: [\n    {\n      action: 'Beispiel: Budget für Top-Campaign erhöhen',\n      reasoning: 'Gute Performance mit niedrigem CPL',\n      impact: 'high'\n    }\n  ],\n  status: 'draft'\n};\n\nreturn {\n  json: {\n    dailyMetrics: dailyMetrics,\n    weeklyBriefing: weeklyBriefing\n  }\n};"
+      },
+      "name": "Transform Data",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://IHRE-VERCEL-DOMAIN.vercel.app/api/n8n-ingest",
+        "authentication": "headerAuth",
+        "options": {
+          "bodyContentType": "json"
+        },
+        "headerParametersJson": "{\n  \"Content-Type\": \"application/json\"\n}",
+        "bodyParametersJson": "={{ $json }}"
+      },
+      "name": "Send to Dashboard API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "1",
+          "name": "Dashboard API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.status }}",
+              "operation": "equals",
+              "value2": "ok"
+            }
+          ]
+        }
+      },
+      "name": "Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "message": "=✅ Dashboard Sync erfolgreich!\n\nDaily Metrics: {{ $json.dailyMetrics?.received || 0 }} Zeilen\nWeekly Briefing: {{ $json.weeklyBriefing ? 'Gespeichert' : 'Nicht vorhanden' }}\n\nZeitstempel: {{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}"
+      },
+      "name": "Success Notification",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "notes": "Ersetzen Sie diesen Node durch Slack/Email/etc."
+    },
+    {
+      "parameters": {
+        "message": "=❌ Dashboard Sync fehlgeschlagen!\n\nFehler: {{ $json.error }}\nDetails: {{ $json.details }}\n\nZeitstempel: {{ $now.toFormat('yyyy-MM-dd HH:mm:ss') }}"
+      },
+      "name": "Error Notification",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "notes": "Ersetzen Sie diesen Node durch Slack/Email/etc."
+    }
+  ],
+  "connections": {
+    "Schedule: Daily at 6am": {
+      "main": [
+        [
+          {
+            "node": "Transform Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform Data": {
+      "main": [
+        [
+          {
+            "node": "Send to Dashboard API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Dashboard API": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Success Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {},
+  "meta": {
+    "instanceId": "your-instance-id"
+  }
+}
+
