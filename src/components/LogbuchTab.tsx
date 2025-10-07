@@ -44,6 +44,7 @@ export default function LogbuchTab() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -199,6 +200,25 @@ export default function LogbuchTab() {
     });
 
     return formatter.format(event.value);
+  };
+
+  const handleDelete = async (eventId?: string) => {
+    if (!eventId) return;
+
+    const confirmed = typeof window !== 'undefined' ? window.confirm('Diesen Log-Eintrag wirklich löschen?') : true;
+    if (!confirmed) return;
+
+    setDeletingEventId(eventId);
+    const { error: deleteError } = await supabase.from('events').delete().eq('id', eventId);
+
+    if (deleteError) {
+      setError(`Event konnte nicht gelöscht werden: ${deleteError.message}`);
+      setDeletingEventId(null);
+      return;
+    }
+
+    setEvents((prev) => prev.filter((event) => event.id !== eventId));
+    setDeletingEventId(null);
   };
 
   const getEventIcon = (type: LogEvent['type']) => {
@@ -436,6 +456,13 @@ export default function LogbuchTab() {
                   className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-200 hover:border-slate-200/40 hover:bg-slate-200/10"
                 >
                   Bearbeiten
+                </button>
+                <button
+                  onClick={() => handleDelete(event.id)}
+                  disabled={deletingEventId === event.id}
+                  className="rounded-full border border-rose-400/40 bg-rose-500/10 px-3 py-1 text-xs text-rose-100 hover:border-rose-400/60 hover:bg-rose-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {deletingEventId === event.id ? 'Lösche…' : 'Löschen'}
                 </button>
               </div>
             </div>
