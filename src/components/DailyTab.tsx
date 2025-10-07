@@ -6,12 +6,12 @@ import { DailyKPI, FilterOptions } from '@/types';
 
 const ITEMS_PER_PAGE = 25;
 
+const toISODate = (date: Date) => date.toISOString().slice(0, 10);
+
 const getDefaultDateRange = () => {
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - 6);
-
-  const toISODate = (date: Date) => date.toISOString().slice(0, 10);
 
   return {
     start: toISODate(start),
@@ -30,8 +30,52 @@ export default function DailyTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadLatestDateRange = async () => {
+      const { data, error } = await supabase
+        .from('fact_daily')
+        .select('date')
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!error && data?.date) {
+        const latest = new Date(`${data.date}T00:00:00Z`);
+        const start = new Date(latest);
+        start.setDate(latest.getDate() - 6);
+
+        setFilters((prev) => ({
+          ...prev,
+          dateRange: {
+            start: toISODate(start),
+            end: toISODate(latest),
+          },
+        }));
+      }
+
+      setInitialized(true);
+    };
+
+    loadLatestDateRange();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!filters.dateRange.start || !filters.dateRange.end || !initialized) {
+      return;
+    }
+
     let isMounted = true;
 
     const fetchDailyMetrics = async () => {
