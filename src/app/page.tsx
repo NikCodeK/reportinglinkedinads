@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Auth from '@/components/Auth';
 import Navigation, { TabType } from '@/components/Navigation';
+import AllTimeTab from '@/components/AllTimeTab';
 import DailyTab from '@/components/DailyTab';
 import WeeklyTab from '@/components/WeeklyTab';
 import DeepDiveTab from '@/components/DeepDiveTab';
@@ -10,7 +11,7 @@ import LogbuchTab from '@/components/LogbuchTab';
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('daily');
+  const [activeTab, setActiveTab] = useState<TabType>('all-time');
 
   if (!isAuthenticated) {
     return <Auth onLogin={() => setIsAuthenticated(true)} />;
@@ -18,6 +19,8 @@ export default function Home() {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'all-time':
+        return <AllTimeTab />;
       case 'daily':
         return <DailyTab />;
       case 'weekly':
@@ -43,4 +46,3 @@ export default function Home() {
     </div>
   );
 }
-

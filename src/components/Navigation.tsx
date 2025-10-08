@@ -2,7 +2,7 @@
 
 import { BarChart3, Calendar, Search, FileText, Sparkles, Shield } from 'lucide-react';
 
-export type TabType = 'daily' | 'weekly' | 'deep-dive' | 'logbuch';
+export type TabType = 'all-time' | 'daily' | 'weekly' | 'deep-dive' | 'logbuch';
 
 interface NavigationProps {
   activeTab: TabType;
@@ -11,10 +11,11 @@ interface NavigationProps {
 
 export default function Navigation({ activeTab, onTabChange }: NavigationProps) {
   const tabs = [
+    { id: 'all-time' as TabType, label: 'All-Time', description: 'Langzeit KPIs', icon: BarChart3 },
     { id: 'daily' as TabType, label: 'Daily', description: 'KPIs & Trends', icon: Calendar },
-    { id: 'weekly' as TabType, label: 'Weekly', description: 'Briefing & Actions', icon: BarChart3 },
+    { id: 'weekly' as TabType, label: 'Weekly', description: 'Briefing & Actions', icon: FileText },
     { id: 'deep-dive' as TabType, label: 'Deep Dive', description: 'Creative Insights', icon: Search },
-    { id: 'logbuch' as TabType, label: 'Logbuch', description: 'Änderungen & Notes', icon: FileText },
+    { id: 'logbuch' as TabType, label: 'Logbuch', description: 'Änderungen & Notes', icon: Sparkles },
   ];
 
   return (
@@ -88,4 +89,3 @@ export default function Navigation({ activeTab, onTabChange }: NavigationProps) 
     </nav>
   );
 }
-
