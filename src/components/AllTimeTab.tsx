@@ -27,9 +27,14 @@ interface AggregatedRow {
 
 const toNumber = (value: unknown): number => {
   if (value === null || value === undefined) return 0;
-  if (typeof value === 'number') return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const safeFixed = (value: number | null | undefined, digits = 2) => {
+  const num = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  return num.toFixed(digits);
 };
 
 export default function AllTimeTab() {
@@ -170,23 +175,23 @@ export default function AllTimeTab() {
       },
       {
         title: 'Spend',
-        value: `€${totals.cost.toFixed(2)}`,
+        value: `€${safeFixed(totals.cost)}`,
         hint: `${totals.clicks.toLocaleString('de-DE')} Clicks`,
       },
       {
         title: 'Leads',
         value: totals.leads.toLocaleString('de-DE'),
-        hint: `CVR ${totals.cvr.toFixed(1)}%`,
+        hint: `CVR ${safeFixed(totals.cvr, 1)}%`,
       },
       {
         title: 'CPL',
-        value: `€${totals.cpl.toFixed(2)}`,
-        hint: `CTR ${totals.ctr.toFixed(1)}%`,
+        value: `€${safeFixed(totals.cpl)}`,
+        hint: `CTR ${safeFixed(totals.ctr, 1)}%`,
       },
     ];
   }, [totals]);
 
-  const formatCurrency = (value: number) => `€${value.toFixed(2)}`;
+  const formatCurrency = (value: number) => `€${safeFixed(value)}`;
 
   return (
     <div className="space-y-6">
@@ -320,11 +325,11 @@ export default function AllTimeTab() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200/70">CTR (All-Time)</p>
-            <p className="mt-2 text-lg font-semibold text-white">{totals ? `${totals.ctr.toFixed(2)}%` : '—'}</p>
+            <p className="mt-2 text-lg font-semibold text-white">{totals ? `${safeFixed(totals.ctr)}%` : '—'}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200/70">CVR (All-Time)</p>
-            <p className="mt-2 text-lg font-semibold text-white">{totals ? `${totals.cvr.toFixed(2)}%` : '—'}</p>
+            <p className="mt-2 text-lg font-semibold text-white">{totals ? `${safeFixed(totals.cvr)}%` : '—'}</p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-200/70">Spend pro Lead</p>

@@ -208,7 +208,19 @@ export default function DailyTab() {
     };
   }, [filteredKPIs]);
 
-  const formatCurrency = (value: number) => `€${value.toFixed(2)}`;
+  const formatCurrency = (value: number | null | undefined) => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return '€0.00';
+    }
+    return `€${value.toFixed(2)}`;
+  };
+
+  const formatPercent = (value: number | null | undefined, digits = 2) => {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return (0).toFixed(digits);
+    }
+    return value.toFixed(digits);
+  };
 
   const getCampaignName = (campaignId: string) => {
     const campaign = campaignOptions.find((c) => c.id === campaignId);
@@ -257,13 +269,13 @@ export default function DailyTab() {
           {
             title: 'Leads',
             value: summaryMetrics.totalLeads.toLocaleString('de-DE'),
-            hint: `CVR ${summaryMetrics.avgCvr.toFixed(1)}%`,
+            hint: `CVR ${formatPercent(summaryMetrics.avgCvr, 1)}%`,
             tone: 'from-emerald-500 via-teal-500 to-cyan-500',
           },
           {
             title: 'CPL',
             value: formatCurrency(summaryMetrics.avgCpl || 0),
-            hint: `CTR ${summaryMetrics.avgCtr.toFixed(1)}%`,
+            hint: `CTR ${formatPercent(summaryMetrics.avgCtr, 1)}%`,
             tone: 'from-amber-500 via-orange-500 to-rose-500',
           },
         ].map((metric) => (
@@ -441,7 +453,7 @@ export default function DailyTab() {
                     {kpi.leads}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100 text-right">
-                    {kpi.ctr.toFixed(2)}%
+                    {formatPercent(kpi.ctr)}%
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100 text-right">
                     {formatCurrency(kpi.cpc)}
@@ -450,7 +462,7 @@ export default function DailyTab() {
                     {formatCurrency(kpi.cpm)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100 text-right">
-                    {kpi.cvr.toFixed(2)}%
+                    {formatPercent(kpi.cvr)}%
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-100 text-right">
                     {formatCurrency(kpi.cpl)}
