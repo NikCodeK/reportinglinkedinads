@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart,
   Bar,
@@ -14,7 +14,7 @@ import {
 } from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { WeeklyBriefing, WeeklyBriefingRecommendation, WeeklyData } from '@/types';
-import { CheckCircle, XCircle, Download, FileText, Sparkles } from 'lucide-react';
+import { CheckCircle, XCircle, Download, FileText, Sparkles, X, Plus } from 'lucide-react';
 
 type CampaignPerformance = {
   campaignId: string;
@@ -27,6 +27,22 @@ type CampaignPerformance = {
   cpc: number;
   cpl: number;
   cvr: number;
+};
+
+type MockCampaignBriefing = {
+  id: string;
+  name: string;
+  summary: string[];
+  actions: string[];
+  llmText: string;
+};
+
+type MockWeeklyBriefing = {
+  weekId: string;
+  label: string;
+  period: string;
+  overview: string[];
+  campaigns: MockCampaignBriefing[];
 };
 
 const getDefaultWeekRange = () => {
@@ -52,8 +68,103 @@ export default function WeeklyTab() {
   const [error, setError] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState(getDefaultWeekRange());
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [showBriefingModal, setShowBriefingModal] = useState(false);
+  const [activeBriefingTab, setActiveBriefingTab] = useState<string>('overview');
+
+  const llmBriefingMock = useMemo<MockWeeklyBriefing[]>(
+    () => [
+      {
+        weekId: '2024-W40',
+        label: 'KW 40 · 30.09 – 06.10',
+        period: '30.09 – 06.10.2024',
+        overview: [
+          'Executive Summary: Lead-Generierung +15 % gegenüber der Vorwoche bei stabiler CPL.',
+          'Top-Performer ist „Lead Gen Herbst“ mit starkem Creative-Neuzugang.',
+          'Empfehlung: Awareness-Budget leicht drosseln und in Performance-Kampagnen umschichten.'
+        ],
+        campaigns: [
+          {
+            id: 'campaign-1',
+            name: 'Lead Gen Herbst',
+            summary: [
+              'Leads +18 % vs. Vorwoche durch neues Carousel-Asset.',
+              'CTR stieg von 2,4 % auf 3,1 % – Zielgruppenerweiterung erfolgreich.'
+            ],
+            actions: [
+              'Budget in KW41 um weitere +10 % erhöhen.',
+              'Creative-Variante B testen und nach 3 Tagen evaluieren.'
+            ],
+            llmText:
+              'Headline: Lead Gen Herbst übertrifft Ziele\n\nPerformance Überblick:\n- Spend: €5.420 (+12 % WoW)\n- Leads: 138 (+18 % WoW)\n- CPL: €39,28 (-5,2 % WoW)\n\nWichtige Beobachtungen:\n1. Das neue Carousel-Asset erzeugt 42 % der Leads bei bester CPL.\n2. Lookalike-Targeting 5 % reagiert stärker als 1 %, was auf eine breitere Resonanz hindeutet.\n3. Engagement auf LinkedIn Form Fill bleibt hoch (Abbruchquote < 18 %).\n\nEmpfohlene Aktionen:\n• Budget-Ramp von +10 % bestätigen (nächste Woche beobachten).\n• Creative-B-Variante in Rotation nehmen, Fokus auf Value Proposition (ROI-Bezug).\n• Prüfung: Follow-up Sequenz im CRM nach 24 h verkürzen, um Conversion-Zeit zu optimieren.\n\nRisiken:\n• Frequency steigt auf 3,4 – parallele Awareness-Maßnahmen beobachten, damit keine Übersättigung entsteht.'
+          },
+          {
+            id: 'campaign-2',
+            name: 'Brand Awareness Q4',
+            summary: [
+              'Impressions +9 %, Leads stagnieren.',
+              'Frequency klettert auf 3,8 – Ermüdungserscheinungen möglich.'
+            ],
+            actions: [
+              'Neue Visuals vorbereiten, um Ad Fatigue entgegenzuwirken.',
+              'Cap bei Frequency 3,5 testen.'
+            ],
+            llmText:
+              'Headline: Brand Awareness Q4 verliert an Dynamik\n\nPerformance Überblick:\n- Impressions: 128.400 (+9 % WoW)\n- Clicks: 1.140 (+2 % WoW)\n- Leads: 24 (±0)\n- CPM: €18,20 (+6 % WoW)\n\nAnalyse:\n1. CTR stagniert bei 0,89 %, obwohl Reach ausgebaut wurde – Creative Fatigue sichtbar.\n2. Frequenz 3,8 über Zielwert (3,0) → stärkere Wiederholungsrate bei denselben Creatives.\n3. Kampagne liefert starke Top-of-Funnel KPIs, aber keine zusätzlichen Leads.\n\nEmpfehlungen:\n• Creative Refresh mit Storytelling-Variante anstoßen.\n• CTA auf “Learn More” testen, um höhere Click-to-Landing-Rate zu forcieren.\n• Nächste Woche Budget um 5 % reduzieren und in Performance-Kampagne verschieben.\n\nRisiken:\n• Sinkendes Engagement könnte trotz Awareness-Ziel zu schwierigerem Retargeting führen.\n• Bei unverändert hoher Frequency droht Relevanzverlust (LinkedIn Quality Score beobachten).'
+          }
+        ]
+      },
+      {
+        weekId: '2024-W39',
+        label: 'KW 39 · 23.09 – 29.09',
+        period: '23.09 – 29.09.2024',
+        overview: [
+          'Leads stabil, CPC leicht gestiegen durch mehr Wettbewerb.',
+          'Creative-Refresh für Retargeting angesetzt, um CTR wieder auf 2,5 % zu bringen.'
+        ],
+        campaigns: [
+          {
+            id: 'campaign-3',
+            name: 'Retargeting Herbst',
+            summary: [
+              'Lead-Form Abschlüsse -6 % vs. Vorwoche.',
+              'Frequency bei 4,1 – Rotation dringend empfohlen.'
+            ],
+            actions: [
+              'Neues Video-Asset vorziehen.',
+              'Landing-Page Copy mit Variation B testen.'
+            ],
+            llmText:
+              'Headline: Retargeting Herbst im Rückwärtsgang\n\nPerformance Überblick:\n- Leads: 62 (-6 % WoW)\n- CPL: €42,75 (+4 % WoW)\n- Conversion Rate: 3,4 % (-0,2 PP WoW)\n\nInsights:\n• Die aktuelle Audience wird zu häufig erreicht (Frequency 4,1).\n• Video-View-Rate sinkt von 37 % → 29 %, was auf zu ähnliche Creatives hindeutet.\n• CRM Feedback: Lead-Qualität stabil, aber langsamere Reaktionszeit der SDRs.\n\nEmpfehlungen:\n1. Neues Video-Asset sofort launchen (Fokus auf Product Demo).\n2. Frequency Cap auf 3,2 setzen und Audience Refresh (Exclude 30d und 60d).\n3. Landing-Page Copy Variation B testen, CTA stärker auf „Jetzt Demo sichern“ ausrichten.\n\nFollow-up:\n• SDR-Team informieren, dass Response-Zeit auf < 12h reduziert werden sollte.\n• Nächste Woche Conversion Rate erneut prüfen.'
+          }
+        ]
+      }
+    ],
+    []
+  );
+  const [selectedBriefingWeek, setSelectedBriefingWeek] = useState<MockWeeklyBriefing | null>(null);
 
   const loading = loadingBriefing || loadingMetrics;
+
+  useEffect(() => {
+    if (!selectedBriefingWeek && llmBriefingMock.length) {
+      setSelectedBriefingWeek(llmBriefingMock[0]);
+      setActiveBriefingTab('overview');
+    }
+  }, [llmBriefingMock, selectedBriefingWeek]);
+
+  const handleOpenBriefingModal = () => {
+    if (!selectedBriefingWeek) return;
+    setActiveBriefingTab('overview');
+    setShowBriefingModal(true);
+  };
+
+  const handleSelectBriefingWeek = (week: MockWeeklyBriefing) => {
+    setSelectedBriefingWeek(week);
+    setActiveBriefingTab('overview');
+  };
+
+  const selectedCampaignBriefing =
+    selectedBriefingWeek?.campaigns.find((campaign) => campaign.id === activeBriefingTab) ?? null;
 
   useEffect(() => {
     let isMounted = true;
@@ -371,6 +482,85 @@ export default function WeeklyTab() {
         </div>
       </section>
 
+      <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-lg shadow-slate-900/40">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">LLM-Briefings pro Woche</h3>
+              <p className="text-xs text-blue-100/70">
+                Wähle eine Kalenderwoche, um das gespeicherte KI-Briefing einzusehen. Aktuell siehst du Mock-Daten zum Designcheck.
+              </p>
+            </div>
+            <button
+              onClick={handleOpenBriefingModal}
+              disabled={!selectedBriefingWeek}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-blue-100 hover:border-blue-400/40 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <FileText className="h-4 w-4" />
+              Briefing öffnen
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs">
+            {llmBriefingMock.map((week) => {
+              const isActive = selectedBriefingWeek?.weekId === week.weekId;
+              return (
+                <button
+                  key={week.weekId}
+                  onClick={() => handleSelectBriefingWeek(week)}
+                  className={`rounded-full border px-4 py-2 font-semibold transition ${
+                    isActive
+                      ? 'border-blue-400/60 bg-blue-500/10 text-blue-100'
+                      : 'border-white/10 bg-white/5 text-blue-100/70 hover:border-blue-400/40'
+                  }`}
+                >
+                  {week.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {selectedBriefingWeek ? (
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveBriefingTab('overview');
+                handleOpenBriefingModal();
+              }}
+              className="rounded-2xl border border-white/10 bg-slate-900/60 p-5 text-left transition hover:border-blue-400/40 hover:bg-blue-500/10"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">Überblick (Preview)</p>
+              <p className="mt-1 text-xs text-blue-100/60">{selectedBriefingWeek.period}</p>
+              <div className="mt-3 space-y-2 text-xs text-blue-100/70">
+                {selectedBriefingWeek.overview.slice(0, 2).map((paragraph, index) => (
+                  <p key={`overview-${selectedBriefingWeek.weekId}-${index}`}>{paragraph}</p>
+                ))}
+              </div>
+              <span className="mt-4 inline-flex items-center gap-2 text-[11px] text-blue-200/80">
+                <FileText className="h-3 w-3" /> Briefing öffnen
+              </span>
+            </button>
+            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">Aktive Kampagnen (Mock)</p>
+              <ul className="mt-3 space-y-1 text-xs text-blue-100/70">
+                {selectedBriefingWeek.campaigns.map((campaign) => (
+                  <li key={campaign.id}>• {campaign.name}</li>
+                ))}
+              </ul>
+              <p className="mt-4 text-[11px] text-blue-100/60">
+                Klicke auf „Briefing öffnen“, um Gesamt- und Kampagnenbriefings im Detail zu sehen.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 px-4 py-6 text-sm text-blue-100/70">
+            Noch keine Briefings hinterlegt.
+          </div>
+        )}
+      </section>
+
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {[
           {
@@ -584,6 +774,120 @@ export default function WeeklyTab() {
           </button>
         </div>
       </section>
+
+      {showBriefingModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div className="absolute inset-0 bg-slate-950/70 backdrop-blur" onClick={() => setShowBriefingModal(false)} />
+          <div className="relative z-10 w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950/90 shadow-2xl shadow-slate-950/60">
+            <div className="flex items-start justify-between gap-3 border-b border-white/10 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">
+                  {selectedBriefingWeek ? `LLM Briefing – ${selectedBriefingWeek.label}` : 'LLM Briefing'}
+                </h3>
+                <p className="text-xs text-blue-100/70">
+                  {selectedBriefingWeek?.period || 'Bitte zuerst eine Woche auswählen.'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowBriefingModal(false)}
+                className="rounded-full border border-white/10 bg-white/5 p-2 text-blue-100 hover:border-blue-400/40 hover:bg-blue-500/10"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {selectedBriefingWeek ? (
+              <>
+                <div className="flex flex-wrap gap-2 border-b border-white/10 px-6 py-3 text-xs">
+                  <button
+                    onClick={() => setActiveBriefingTab('overview')}
+                    className={`rounded-full border px-4 py-2 font-semibold transition ${
+                      activeBriefingTab === 'overview'
+                        ? 'border-blue-400/60 bg-blue-500/10 text-blue-100'
+                        : 'border-white/10 bg-white/5 text-blue-100/70 hover:border-blue-400/40'
+                    }`}
+                  >
+                    Gesamtbriefing
+                  </button>
+                  {selectedBriefingWeek.campaigns.map((campaign) => {
+                    const isActive = activeBriefingTab === campaign.id;
+                    return (
+                      <button
+                        key={campaign.id}
+                        onClick={() => setActiveBriefingTab(campaign.id)}
+                        className={`rounded-full border px-4 py-2 font-semibold transition ${
+                          isActive
+                            ? 'border-blue-400/60 bg-blue-500/10 text-blue-100'
+                            : 'border-white/10 bg-white/5 text-blue-100/70 hover:border-blue-400/40'
+                        }`}
+                      >
+                        Kampagne: {campaign.name}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="px-6 py-6">
+                  {activeBriefingTab === 'overview' ? (
+                <div className="space-y-4 text-sm text-blue-100/80">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">Gesamtbriefing</p>
+                  <div className="max-h-80 overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-xs leading-relaxed text-blue-100/80">
+                    {selectedBriefingWeek.overview.map((paragraph, index) => (
+                      <p key={`overview-${selectedBriefingWeek.weekId}-${index}`} className="mb-3 last:mb-0">
+                        {paragraph}
+                      </p>
+                    ))}
+                    <p className="mt-4 text-[11px] text-blue-100/60">
+                      (Mock) Hier könnte das LLM ein umfassendes Executive Summary liefern – mehrere Absätze, Tabellen oder Stichpunkte,
+                      alles scrollbar in einem Feld gespeichert.
+                    </p>
+                  </div>
+                </div>
+              ) : selectedCampaignBriefing ? (
+                <div className="space-y-5 text-sm text-blue-100/80">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">
+                      Highlights – {selectedCampaignBriefing.name}
+                    </p>
+                    <div className="mt-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs text-blue-100/70">
+                      <ul className="space-y-1">
+                        {selectedCampaignBriefing.summary.map((item, index) => (
+                          <li key={`summary-${selectedCampaignBriefing.id}-${index}`}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">Empfohlene Aktionen</p>
+                    <div className="mt-2 rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-xs text-blue-100/70">
+                      <ul className="space-y-1">
+                        {selectedCampaignBriefing.actions.map((item, index) => (
+                          <li key={`action-${selectedCampaignBriefing.id}-${index}`}>• {item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-100/70">Detailiertes Kampagnenbriefing</p>
+                    <div className="mt-2 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs leading-relaxed text-blue-100/80 whitespace-pre-line">
+                      {selectedCampaignBriefing.llmText}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-blue-100/70">Für diese Auswahl liegt noch kein Briefing vor.</p>
+              )}
+            </div>
+              </>
+            ) : (
+              <div className="px-6 py-6 text-sm text-blue-100/70">
+                Noch keine Woche ausgewählt. Bitte zunächst eine Woche im Dashboard anwählen.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
